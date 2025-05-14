@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>세로 스크롤 비교 - 가로 3열</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 0;
+        padding: 20px;
+      }
+      
+      h1 {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .container {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .column {
+        flex: 1;
+        height: 500px;
+        border: 2px solid #999;
+        background-color: #f5f5f5;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .label {
+        background: #333;
+        color: white;
+        padding: 10px;
+        text-align: center;
+      }
+
+      .scroll-area {
+        flex: 1;
+        overflow: auto;
+        position: relative;
+        touch-action: none;
+      }
+
+      .scroll-content {
+        width: 100%;
+        height: 99999px;
+        background: repeating-linear-gradient(
+          to bottom,
+          #4facfe 0px,
+          #4facfe 30px,
+          #00f2fe 30px,
+          #00f2fe 60px
+        );
+      }
+    </style>
+  </head>
+  <body>
+    <h1>세로 스크롤 비교 (가로 3열)</h1>
+
+    <div class="container">
+      <div class="column">
+        <div class="label">관성 없음</div>
+        <div id="noInertia" class="scroll-area">
+          <div class="scroll-content"></div>
+        </div>
+      </div>
+      <div class="column">
+        <div class="label">관성만 있음</div>
+        <div id="inertiaOnly" class="scroll-area">
+          <div class="scroll-content"></div>
+        </div>
+      </div>
+      <div class="column">
+        <div class="label">관성 + 마찰</div>
+        <div id="inertiaFriction" class="scroll-area">
+          <div class="scroll-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function enableVerticalScroll(area, useInertia, useFriction) {
+        let isDragging = false;
+        let startY, scrollStart, lastY, lastTime;
+        let velocity = 0;
+        let rafId;
+
+        const onMove = (y) => {
+          const dy = y - lastY;
+          const dt = performance.now() - lastTime;
+          velocity = (dy / dt) * 16;
+          lastY = y;
+          lastTime = performance.now();
+        };
+
+        const animateScroll = () => {
+          if (useFriction) velocity *= 0.95;
+          area.scrollTop -= velocity;
+          if (Math.abs(velocity) > 0.5) {
+            rafId = requestAnimationFrame(animateScroll);
+          }
+        };
+
+        area.addEventListener("mousedown", (e) => {
+          isDragging = true;
+          startY = e.pageY;
+          scrollStart = area.scrollTop;
+          lastY = e.pageY;
+          lastTime = performance.now();
+          cancelAnimationFrame(rafId);
+        });
+
+        area.addEventListener("mousemove", (e) => {
+          if (!isDragging) return;
+          const dy = e.pageY - startY;
+          area.scrollTop = scrollStart - dy;
+          onMove(e.pageY);
+        });
+
+        area.addEventListener("mouseup", () => {
+          isDragging = false;
+          if (useInertia) requestAnimationFrame(animateScroll);
+        });
+
+        area.addEventListener("mouseleave", () => {
+          isDragging = false;
+        });
+
+        area.addEventListener("touchstart", (e) => {
+          isDragging = true;
+          startY = e.touches[0].pageY;
+          scrollStart = area.scrollTop;
+          lastY = startY;
+          lastTime = performance.now();
+          cancelAnimationFrame(rafId);
+        });
+
+        area.addEventListener("touchmove", (e) => {
+          if (!isDragging) return;
+          const y = e.touches[0].pageY;
+          const dy = y - startY;
+          area.scrollTop = scrollStart - dy;
+          onMove(y);
+        });
+
+        area.addEventListener("touchend", () => {
+          isDragging = false;
+          if (useInertia) requestAnimationFrame(animateScroll);
+        });
+      }
+
+      enableVerticalScroll(document.getElementById("noInertia"), false, false);
+      enableVerticalScroll(document.getElementById("inertiaOnly"), true, false);
+      enableVerticalScroll(
+        document.getElementById("inertiaFriction"),
+        true,
+        true
+      );
+    </script>
+  </body>
+</html>
